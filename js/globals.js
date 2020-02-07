@@ -1,5 +1,10 @@
 var globals = {
   boundaries: defs.boundaries,
-  screenCorrection: 0,
-  foodList: []
+  foodList: [],
+  snake: null,
+  nextFood: 0,
+  scoreHolder: null,
+  score: 0,
+  highScore: -1,
+  loop: null
 }
