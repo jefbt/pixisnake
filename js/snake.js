@@ -1,10 +1,9 @@
 class Snake {
-  constructor(stage, pos) {
-    this.create(stage, pos);
-    this.print();
+  constructor(stage, pos, gameOver) {
+    this.create(stage, pos, gameOver);
   }
 
-  create(stage, pos) {
+  create(stage, pos, gameOver) {
     this.head = new SnakeBlock(stage, pos, null, true);
     this.head.direction = 0;
     this.size = 1;
@@ -13,6 +12,8 @@ class Snake {
     this.tail = this.head;
     this.stage = stage;
     this.head.wait = false;
+    this.lastDirection = this.head.direction;
+    this.gameOver = gameOver;
   }
 
   destroy() {
@@ -55,13 +56,14 @@ class Snake {
       case 2: newX--; break;
       case 3: newX++; break;
     }
+
+    this.verifySelfCollision(newX, newY);
+
     newX *= defs.size;
     newY *= defs.size;
 
-    if (newX > globals.boundaries -
-          globals.screenCorrection - defs.size ||
-        newY > globals.boundaries -
-          globals.screenCorrection - defs.size ||
+    if (newX > globals.boundaries - defs.size ||
+        newY > globals.boundaries - defs.size ||
         newX < 0 || newY < 0)
     {
       return true;
@@ -75,17 +77,29 @@ class Snake {
     }
     this.head.updateGraphic(true);
 
+    this.lastDirection = this.head.direction;
+
     return false;
   }
 
   turn(direction) {
     if (this.size > 1) {
       const invertDir = this.invertDirection(direction);
-      if (invertDir !== this.head.direction) {
+      if (invertDir !== this.lastDirection) {
         this.head.direction = direction;
       }
     } else {
       this.head.direction = direction;
+    }
+  }
+
+  verifySelfCollision(x, y) {
+    let pointer = this.head.next;
+    while(pointer) {
+      if (x === pointer.pos.x && y === pointer.pos.y) {
+        this.gameOver();
+      }
+      pointer = pointer.next;
     }
   }
 
@@ -172,24 +186,5 @@ class Snake {
       pointer = pointer.next;
     }
     this.head.updateGraphic(true);
-  }
-  
-  print() {
-    let last = this.head;
-    let message = "Head: " + last.id;
-    message += "\nDirection: " + this.head.direction;
-    message += "\nBody: [";
-    while(last) {
-      let f = last.follow;
-      let n = last.next;
-      if (!f) { f = { id: "-" } }
-      if (!n) { n = { id: "-" } }
-      message += "\n *" + last.id +
-        "(f:" + f.id + " n:" + n.id +")";
-      message += " : (" + last.pos.x + "," + last.pos.y + ");";
-      last = last.next;
-    }
-    message += "\n]\nTail: " + this.tail.id;
-    //console.log("Snake", message);
   }
 }

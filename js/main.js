@@ -14,40 +14,39 @@ window.onload = function() {
   start();
 }
 
-let snake;
-let nextFood = 0;
-let scoreHolder;
-let score = 0;
-
 function start() {
-  // listeners
   window.addEventListener("keydown", keyDown);
 
-  globals.screenCorrection = globals.boundaries % defs.size;
+  globals.boundaries = defs.boundaries;
+
+  app.view.width = globals.boundaries;
+  app.view.height = globals.boundaries;
 
   const pos = {
     x: Math.floor(globals.boundaries / defs.size / 2),
     y: Math.floor(globals.boundaries / defs.size / 2)
   }
-  snake = new Snake(app.stage, pos);
+  globals.snake = new Snake(app.stage, pos, gameOver);
 
-  nextFood = Date.now() + defs.foodTime;
-  setInterval(update, defs.speed);
+  globals.nextFood = Date.now() + defs.foodTime;
+  globals.loop = setInterval(update, defs.speed);
 
-  scoreHolder = document.getElementById("score");
+  globals.scoreHolder = document.getElementById("score");
+
+  globals.highScore = localStorage.getItem("highScore") || -1;
   changeScore(0);
 }
 
 function update() {
-  if (snake) {
-    const adjust = snake.update();
+  if (globals.snake) {
+    const adjust = globals.snake.update();
     foodOverlap();
     if (adjust) {
       adjustScreen();
     }
-    if (nextFood >= Date.now()) {
+    if (globals.nextFood < Date.now()) {
       addFood();
-      nextFood = Date.now() + defs.foodTime;
+      globals.nextFood = Date.now() + defs.foodTime;
     }
     verifyFood();
   }
@@ -81,14 +80,21 @@ function keyDown(e) {
   }
 
 function changeDirection(direction) {
-  if (snake) {
-    snake.turn(direction);
+  if (globals.snake) {
+    globals.snake.turn(direction);
   }
 }
 
 function changeScore(points) {
-  score += points;
-  scoreHolder.innerText = String(defs.scoreText + ": " + score);
+  globals.score += points;
+  globals.scoreHolder.innerText = String(defs.scoreText + ": " + globals.score);
+  if (globals.highScore > -1 &&
+      globals.score > globals.highScore)
+  {
+    document.getElementById("score").style.color = "#5c5";
+  } else {
+    document.getElementById("score").style.color = "#000";
+  }
 }
 
 function addFood() {
@@ -97,8 +103,8 @@ function addFood() {
 
 function foodOverlap() {
   for(var f in globals.foodList) {
-    if (globals.foodList[f].overlaps(snake.head.pos)) {
-      snake.eat(globals.foodList[f].power);
+    if (globals.foodList[f].overlaps(globals.snake.head.pos)) {
+      globals.snake.eat(globals.foodList[f].power);
       changeScore(globals.foodList[f].score);
       globals.foodList[f].destroy();
       globals.foodList[f] = null;
@@ -124,9 +130,29 @@ function clearFoodList() {
 }
 
 function gameOver() {
-  console.log("GAME OVER");
-  snake.destroy();
-  snake = null;
+  app.view.width = 0;
+  app.view.height = 0;
+  globals.snake.destroy();
+  globals.snake = null;
   clearFoodList();
-  console.log(globals.foodList);
+  
+  const playAgain = document.getElementById("playAgain");
+  playAgain.style.display = "flex";
+  playAgain.onclick = restartGame;
+
+  const lastScore = localStorage.getItem("highScore");
+  if (globals.score > lastScore) {
+    localStorage.setItem("highScore", globals.score);
+  }
+}
+
+function restartGame() {
+  playAgain.style.display = "none";
+  clearInterval(globals.loop);
+  globals.foodList = [];
+  globals.nextFood = 0;
+  globals.score = 0;
+  globals.highScore = -1;
+  changeScore(0);
+  start();
 }
